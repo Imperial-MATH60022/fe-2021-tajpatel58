@@ -1,7 +1,8 @@
 # Cause division to always mean floating point division.
 from __future__ import division
 import numpy as np
-from .reference_elements import ReferenceInterval, ReferenceTriangle
+import scipy.special
+from reference_elements import ReferenceInterval, ReferenceTriangle
 np.seterr(invalid='ignore', divide='ignore')
 
 
@@ -19,7 +20,26 @@ def lagrange_points(cell, degree):
 
     """
 
-    raise NotImplementedError
+    dimension = cell.dim
+
+    if dimension == 1:
+        num_of_points = degree+1
+        coordinates = np.zeros((num_of_points, 2))
+        coordinates[:,0] = [i/degree for i in range(num_of_points)]
+        return coordinates
+
+    elif dimension == 2:
+        num_of_points = int(scipy.special.comb(degree+2, 2))
+        coordinates = np.zeros((num_of_points, 2))
+        coordinate_num = 0
+        for i in range(degree+1):
+            for j in range(0, degree-i+1):
+                coordinates[coordinate_num] = [i/degree, j/degree]
+                coordinate_num += 1
+        return coordinates
+    else:
+        raise ValueError("We only accept cells in 1 or 2 dimensions")
+
 
 
 def vandermonde_matrix(cell, degree, points, grad=False):
@@ -150,3 +170,7 @@ class LagrangeElement(FiniteElement):
         # __init__ method on the FiniteElement class to set up the
         # basis coefficients.
         super(LagrangeElement, self).__init__(cell, degree, nodes)
+
+
+print(lagrange_points(ReferenceInterval, 5))
+print(lagrange_points(ReferenceTriangle, 3))
