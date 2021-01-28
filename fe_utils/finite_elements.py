@@ -20,16 +20,22 @@ def lagrange_points(cell, degree):
 
     """
 
-    dimension = cell.dim
+    dim = cell.dim
 
-    if dimension == 1:
-        num_of_points = degree+1
+    # A formula from lectures to deduce number of points in reference.
+    num_of_points = int(scipy.special.comb(degree+dim, dim))
+
+    if dim == 1:
+        # As 1D, initialise coordinates to 0 as y-coord == 0.
         coordinates = np.zeros((num_of_points, 2))
-        coordinates[:,0] = [i/degree for i in range(num_of_points)]
+        coordinates[:, 0] = [i/degree for i in range(num_of_points)]
         return coordinates
 
-    elif dimension == 2:
-        num_of_points = int(scipy.special.comb(degree+2, 2))
+    elif dim == 2:
+        # Using the set given in lectures, we can loop over to construct the points.
+        # In particular, for some fixed i in {0,....,degree} the condition i+j<=degree
+        # Tells us that 0<=j<=degree-i.
+
         coordinates = np.zeros((num_of_points, 2))
         coordinate_num = 0
         for i in range(degree+1):
@@ -40,6 +46,15 @@ def lagrange_points(cell, degree):
     else:
         raise ValueError("We only accept cells in 1 or 2 dimensions")
 
+
+#The following functions are used to evaluate x^power_x and x^power_x * y^power_y
+
+def monomial_basis_1(point, power_x):
+    return point**power_x
+
+
+def monomial_basis_2(point, power_x, power_y,):
+    return point[0]**power_x * point[1]**power_y
 
 
 def vandermonde_matrix(cell, degree, points, grad=False):
@@ -57,7 +72,37 @@ def vandermonde_matrix(cell, degree, points, grad=False):
     <ex-vandermonde>`.
     """
 
-    raise NotImplementedError
+
+    """
+    We firstly see that the number of rows of V is the number of points and 
+    the number of columns of V is the dimension of P, which we can compute 
+    as we've been given the formula. 
+    
+    """
+    num_of_rows = int(scipy.special.comb(degree+cell.dim, cell.dim))
+    v = np.zeros((len(points), num_of_rows))
+
+    """ 
+    Seperate based on which dimension our reference is in and we 
+    use the fact that a column of V corresponds to evaluating a 
+    fixed basis function at all the different points in the reference.
+    
+    It's worth mentioning I will be using the monomoial basis.  
+    """
+
+    if cell.dim == 1:
+        # Power denotes the power of x in our basis.
+        for power in range(0, degree+1):
+            v[:, power] = [monomial_basis_1(point, power) for point in points]
+        return v
+    else:
+        col_num = 0
+        # For a fixed order, we evaluate the basis functions of that order at points.
+        for order in range(degree+1):
+            for power in range(order+1):
+                v[:, col_num] = [monomial_basis_2(point, order-power, power) for point in points]
+                col_num += 1
+        return v
 
 
 class FiniteElement(object):
@@ -172,5 +217,7 @@ class LagrangeElement(FiniteElement):
         super(LagrangeElement, self).__init__(cell, degree, nodes)
 
 
-print(lagrange_points(ReferenceInterval, 5))
-print(lagrange_points(ReferenceTriangle, 3))
+#print(lagrange_points(ReferenceInterval, 5))
+#print(lagrange_points(ReferenceTriangle, 3))
+
+#print(vandermonde_matrix(ReferenceTriangle, 3, lagrange_points(ReferenceTriangle, 3)))
