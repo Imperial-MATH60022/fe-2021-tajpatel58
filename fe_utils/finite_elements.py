@@ -27,7 +27,7 @@ def lagrange_points(cell, degree):
 
     if dim == 1:
         # As 1D, initialise coordinates to 0 as y-coord == 0.
-        coordinates = np.zeros((num_of_points, 2))
+        coordinates = np.zeros((num_of_points, 1))
         coordinates[:, 0] = [i/degree for i in range(num_of_points)]
         return coordinates
 
@@ -52,9 +52,28 @@ def lagrange_points(cell, degree):
 def monomial_basis_1(point, power_x):
     return point**power_x
 
+# For our purposes we only want natural numbers to be powers, hence if we don't we shall return 0
+# This is beneficial with regards to constructing the gradient vector.
+
 
 def monomial_basis_2(point, power_x, power_y,):
-    return point[0]**power_x * point[1]**power_y
+    if power_x < 0 or power_y < 0:
+        return 0
+    else:
+        return point[0] ** power_x * point[1] ** power_y
+
+
+def derivative(point, power_x):
+    if power_x == 0:
+        return 0
+    else:
+        return power_x * monomial_basis_1(point, power_x-1)
+
+
+def grad_vector(point, power_x, power_y):
+    grad_1 = power_x * monomial_basis_2(point, power_x-1, power_y)
+    grad_2 = power_y * monomial_basis_2(point, power_x, power_y-1)
+    return [grad_1, grad_2]
 
 
 def vandermonde_matrix(cell, degree, points, grad=False):
@@ -79,8 +98,8 @@ def vandermonde_matrix(cell, degree, points, grad=False):
     as we've been given the formula. 
     
     """
-    num_of_rows = int(scipy.special.comb(degree+cell.dim, cell.dim))
-    v = np.zeros((len(points), num_of_rows))
+    num_of_cols = int(scipy.special.comb(degree+cell.dim, cell.dim))
+
 
     """ 
     Seperate based on which dimension our reference is in and we 
@@ -89,20 +108,39 @@ def vandermonde_matrix(cell, degree, points, grad=False):
     
     It's worth mentioning I will be using the monomoial basis.  
     """
-
-    if cell.dim == 1:
-        # Power denotes the power of x in our basis.
-        for power in range(0, degree+1):
-            v[:, power] = [monomial_basis_1(point, power) for point in points]
-        return v
+    if grad:
+        if cell.dim == 1:
+            v = np.zeros((len(points), num_of_cols, 1))
+            # Power denotes the power of x whose derivative we evaluate at.
+            # Index starts at 1 because first column = 0.
+            for power in range(1, degree+1):
+                v[:, power] = [derivative(point, power) for point in points]
+            return v
+        else:
+            v = np.zeros((len(points), num_of_cols, 2))
+            col_num = 0
+            # For a fixed order, we evaluate the basis functions of that order at points
+            # e.g for order 2 we evaluate derivatives of x^2, xy, y^2 in that order.
+            for order in range(0, degree+1):
+                for power in range(order+1):
+                    v[:, col_num] = [grad_vector(point, order-power, power) for point in points]
+                    col_num += 1
+            return v
     else:
-        col_num = 0
-        # For a fixed order, we evaluate the basis functions of that order at points.
-        for order in range(degree+1):
-            for power in range(order+1):
-                v[:, col_num] = [monomial_basis_2(point, order-power, power) for point in points]
-                col_num += 1
-        return v
+        v = np.zeros((len(points), num_of_cols))
+        if cell.dim == 1:
+            # Power denotes the power of x in our basis.
+            for power in range(0, degree+1):
+                v[:, power] = [monomial_basis_1(point, power) for point in points]
+            return v
+        else:
+            col_num = 0
+            # For a fixed order, we evaluate the basis functions of that order at points.
+            for order in range(degree+1):
+                for power in range(order+1):
+                    v[:, col_num] = [monomial_basis_2(point, order-power, power) for point in points]
+                    col_num += 1
+            return v
 
 
 class FiniteElement(object):
@@ -168,9 +206,16 @@ class FiniteElement(object):
         The implementation of this method is left as an :ref:`exercise
         <ex-tabulate>`.
         """
-
-        V = vandermonde_matrix(self.cell, self.degree, points)
-        return V*self.basis_coefs
+        if grad:
+            # Use the fact that grad(phi)(X) = grad(V(X))*C ==> T = grad(V(X))*C
+            # T_{i,j} is a linear combination of the gradient vectors in the ith row of V,
+            # with coefficients given by the j^{th} column of C. (C is a 2D numpy array)
+            v = vandermonde_matrix(self.cell, self.degree, points, grad=True)
+            t = np.einsum("ijk,jl->ilk",v, self.basis_coefs)
+            return t
+        else:
+            v = vandermonde_matrix(self.cell, self.degree, points)
+            return np.matmul(v, self.basis_coefs)
 
     def interpolate(self, fn):
         """Interpolate fn onto this finite element by evaluating it
@@ -186,7 +231,7 @@ class FiniteElement(object):
         <ex-interpolate>`.
 
         """
-
+        #return [fn(node) for node in self.nodes]
         raise NotImplementedError
 
     def __repr__(self):
@@ -222,3 +267,5 @@ class LagrangeElement(FiniteElement):
 #print(lagrange_points(ReferenceTriangle, 3))
 
 #print(vandermonde_matrix(ReferenceTriangle, 3, lagrange_points(ReferenceTriangle, 3)))
+
+#print(vandermonde_matrix(ReferenceInterval, 2, lagrange_points(ReferenceInterval, 2), grad=True))
