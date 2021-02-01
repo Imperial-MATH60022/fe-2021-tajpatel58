@@ -231,8 +231,7 @@ class FiniteElement(object):
         <ex-interpolate>`.
 
         """
-        #return [fn(node) for node in self.nodes]
-        raise NotImplementedError
+        return [fn(node) for node in self.nodes]
 
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__,

@@ -1,8 +1,8 @@
 from scipy.spatial import Delaunay
 import numpy as np
 import itertools
-from .finite_elements import LagrangeElement
-from .reference_elements import ReferenceTriangle, ReferenceInterval
+#from .finite_elements import LagrangeElement
+from reference_elements import ReferenceTriangle, ReferenceInterval
 
 
 class Mesh(object):
@@ -144,3 +144,7 @@ class UnitSquareMesh(Mesh):
 
         super(UnitSquareMesh, self).__init__(mesh.points,
                                              mesh.simplices)
+unit_square = UnitSquareMesh(2,2)
+
+print(unit_square.cell_vertices)
+print(unit_square.vertex_coords)
