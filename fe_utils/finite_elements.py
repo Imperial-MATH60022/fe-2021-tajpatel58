@@ -34,12 +34,12 @@ def lagrange_points(cell, degree):
     elif dim == 2:
         # Using the set given in lectures, we can loop over to construct the points.
         # In particular, for some fixed i in {0,....,degree} the condition i+j<=degree
-        # Tells us that 0<=j<=degree-i.
+        # Tells us that 0<=i<=degree-j
 
         coordinates = np.zeros((num_of_points, 2))
         coordinate_num = 0
-        for i in range(degree+1):
-            for j in range(0, degree-i+1):
+        for j in range(degree+1):
+            for i in range(0, degree-j+1):
                 coordinates[coordinate_num] = [i/degree, j/degree]
                 coordinate_num += 1
         return coordinates
@@ -211,7 +211,7 @@ class FiniteElement(object):
             # T_{i,j} is a linear combination of the gradient vectors in the ith row of V,
             # with coefficients given by the j^{th} column of C. (C is a 2D numpy array)
             v = vandermonde_matrix(self.cell, self.degree, points, grad=True)
-            t = np.einsum("ijk,jl->ilk",v, self.basis_coefs)
+            t = np.einsum("ijk,jl->ilk", v, self.basis_coefs)
             return t
         else:
             v = vandermonde_matrix(self.cell, self.degree, points)
@@ -255,11 +255,56 @@ class LagrangeElement(FiniteElement):
 
         nodes = lagrange_points(cell, degree)
 
+        # Entity nodes in 1D is easy to compute, all nodes apart from end points lie on the edge, hence
+        # associate to the edge. End points associated to vertices.
+        if cell.dim == 1:
+            entity_nodes = {0: {0: [0],
+                                1: [len(nodes)-1]}}
+            entity_nodes.update({1: {0: [j for j in range(1, len(nodes)-1)]}})
+
+        elif cell.dim == 2:
+            entity_nodes = {0: {0: [0],
+                                1: [degree],
+                                2: [len(nodes)-1]}}
+            # list holding indexxes of nodes associated with vertices.
+            nodes_verticies = [0, degree, len(nodes)-1]
+            # lists holding the indeexes of nodes associated with corresponding edge.
+            edge_0 = []
+            edge_1 = []
+            edge_2 = []
+            # list holding indexxes of nodes within face of cell.
+            face = []
+            # The following code checks whether each nodes lies on an edge or within the face
+            # and stores it within the appropriate list from above.
+            for index, coord in enumerate(nodes):
+                if index not in nodes_verticies:
+                    if coord[1]+coord[0] == 1:
+                        edge_0.append(index)
+                    elif coord[0] == 0:
+                        edge_1.append(index)
+                    elif coord[1] == 0:
+                        edge_2.append(index)
+                    else:
+                        face.append(index)
+                else:
+                    continue
+            # topological_dim_j is a dictionary where keys is the numbering of the dimension j local mesh entities
+            # and the values are lists of the indexes of nodes associated with that entity.
+
+            toplogical_dim_1 = {0: edge_0,
+                                1: edge_1,
+                                2: edge_2}
+            topological_dim_2 = {0: face}
+
+            # Update entity nodes to include information of nodes associated with dimension 1 and 2.
+            entity_nodes.update({1: toplogical_dim_1})
+            entity_nodes.update({2: topological_dim_2})
+
         # Use lagrange_points to obtain the set of nodes.  Once you
         # have obtained nodes, the following line will call the
         # __init__ method on the FiniteElement class to set up the
         # basis coefficients.
-        super(LagrangeElement, self).__init__(cell, degree, nodes)
+        super(LagrangeElement, self).__init__(cell, degree, nodes, entity_nodes)
 
 
 #print(lagrange_points(ReferenceInterval, 5))
@@ -268,3 +313,9 @@ class LagrangeElement(FiniteElement):
 #print(vandermonde_matrix(ReferenceTriangle, 3, lagrange_points(ReferenceTriangle, 3)))
 
 #print(vandermonde_matrix(ReferenceInterval, 2, lagrange_points(ReferenceInterval, 2), grad=True))
+
+#LagrangeElement(ReferenceInterval, 4)
+
+#print(lagrange_points(ReferenceTriangle,3))
+
+#LagrangeElement(ReferenceTriangle, 3)
