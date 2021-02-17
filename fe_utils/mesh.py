@@ -2,7 +2,7 @@ from scipy.spatial import Delaunay
 import numpy as np
 import itertools
 #from .finite_elements import LagrangeElement
-from .reference_elements import ReferenceTriangle, ReferenceInterval
+from reference_elements import ReferenceTriangle, ReferenceInterval
 
 
 class Mesh(object):
@@ -145,17 +145,28 @@ class UnitSquareMesh(Mesh):
         super(UnitSquareMesh, self).__init__(mesh.points,
                                              mesh.simplices)
 
-""" Just some tests
+"""Just some tests
+"""
+unit_square = UnitSquareMesh(1,1)
 
-unit_square = UnitSquareMesh(2,2)
-
-print(unit_square.cell_vertices)
-print(unit_square.vertex_coords)
-
+#print(unit_square.cell_vertices)
+#print(unit_square.cell_edges)
+#print(unit_square.entity_counts)
+#print(unit_square.adjacency(2, 1)[1])
+#print(unit_square.entity_counts)
+"""
 unit_interval = UnitIntervalMesh(2)
 
 print(unit_interval.vertex_coords)
 print(unit_interval.cell_vertices)
 
 """
+
+a = {0: {0: [3],
+         1: [6],
+         2: [9]},
+     1: {0: [5],
+         1: [4]}}
+
+
 

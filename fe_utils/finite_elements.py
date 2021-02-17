@@ -319,3 +319,5 @@ class LagrangeElement(FiniteElement):
 #print(lagrange_points(ReferenceTriangle,3))
 
 #LagrangeElement(ReferenceTriangle, 3)
+
+#print(LagrangeElement(ReferenceTriangle, 3).nodes_per_entity)
