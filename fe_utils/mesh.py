@@ -56,6 +56,10 @@ class Mesh(object):
             """The indices of the edges incident to each cell (only for 2D
             meshes)."""
 
+            # Here we define the derivatives matrix of the Lagrange P1 basis: We know that the nodal basis
+            # on the reference element is: x, y, 1-x-y.
+            self.lagrange_derivative = np.array([[1, 0], [0, 1], [-1 ,-1]])
+
         if self.dim == 2:
             self.entity_counts = np.array((vertex_coords.shape[0],
                                            self.edge_vertices.shape[0],
@@ -111,7 +115,20 @@ class Mesh(object):
         :result: The Jacobian for cell ``c``.
         """
 
-        raise NotImplementedError
+        if self.dim == 1:
+            # The following list contains the indexxes of the values of end points of the cell c.
+            cell_c_index = [self.cell_vertices[c][0], self.cell_vertices[c][1]]
+            # We know the derivative of the mapping corresponding to cell c is negative of the abs value of difference
+            # in end points.
+            return np.array([self.vertex_coords[cell_c_index[0]]-self.vertex_coords[cell_c_index[1]]])
+        else:
+            # Let cell_vertices_mat be a 2x3 matrix where each column is a coordinate of the cell c.
+            # We can write J = cell_vertices_mat * lagrange_derivative
+            cell_c_vertices_index = self.cell_vertices[c]
+            cell_vertices_mat = np.zeros((2, 3))
+            for i, vertex_index in enumerate(cell_c_vertices_index):
+                cell_vertices_mat[:, i] = self.vertex_coords[vertex_index]
+            return np.matmul(cell_vertices_mat, self.lagrange_derivative)
 
 
 class UnitIntervalMesh(Mesh):
@@ -147,26 +164,20 @@ class UnitSquareMesh(Mesh):
 
 """Just some tests
 """
-unit_square = UnitSquareMesh(1,1)
+unit_square = UnitSquareMesh(2,2)
 
 #print(unit_square.cell_vertices)
 #print(unit_square.cell_edges)
 #print(unit_square.entity_counts)
+#print(unit_square.vertex_coords)
+#print(unit_square.cell_vertices)
 #print(unit_square.adjacency(2, 1)[1])
 #print(unit_square.entity_counts)
-"""
-unit_interval = UnitIntervalMesh(2)
+#unit_interval = UnitIntervalMesh(2)
+#print(unit_interval.vertex_coords)
+#print(unit_interval.cell_vertices)
 
-print(unit_interval.vertex_coords)
-print(unit_interval.cell_vertices)
 
-"""
-
-a = {0: {0: [3],
-         1: [6],
-         2: [9]},
-     1: {0: [5],
-         1: [4]}}
 
 
 

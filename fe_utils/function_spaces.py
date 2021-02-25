@@ -23,8 +23,6 @@ class FunctionSpace(object):
         #: The :class:`~.finite_elements.FiniteElement` of this space.
         self.element = element
 
-        #raise NotImplementedError
-
         # Implement global numbering in order to produce the global
         # cell node list for this space.
         #: The global cell node list. This is a two-dimensional array in
@@ -53,18 +51,17 @@ class FunctionSpace(object):
                     if element.entity_nodes[delta][e]:
                         # global numbering value corresponding to this entity.
                         g_d_i = global_num_vec[delta] + ent*element.nodes_per_entity[delta]
-                        # After first node value assigned, we need to increment by one for every other node on entity.
+                        # After first node value assigned, we need to increment by one for a value of the next node
+                        # on this entity.
                         for index in element.entity_nodes[delta][e]:
                             cell_nodes[row_index, index] = g_d_i
                             g_d_i += 1
                     else:
                         continue
-            # Need to account for the adjacency when dim1 == dim2:
+            # Need to account for the adjacency when dim1 == dim2, following stores node values within the cell:
             for index in element.entity_nodes[mesh.dim][0]:
                 cell_nodes[row_index, index] = global_num_vec[-1] + row_index * element.nodes_per_entity[-1]
         self.cell_nodes = cell_nodes
-
-        print(cell_nodes)
 
         #: The total number of nodes in the function space.
         self.node_count = np.dot(element.nodes_per_entity, mesh.entity_counts)
@@ -201,5 +198,3 @@ class Function(object):
         :result: The integral (a scalar)."""
 
         raise NotImplementedError
-
-elem = FunctionSpace(unit_square,LagrangeElement(ReferenceTriangle, 3))
