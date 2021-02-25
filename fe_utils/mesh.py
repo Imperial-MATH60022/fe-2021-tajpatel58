@@ -164,7 +164,7 @@ class UnitSquareMesh(Mesh):
 
 """Just some tests
 """
-unit_square = UnitSquareMesh(2,2)
+unit_square = UnitSquareMesh(1,1)
 
 #print(unit_square.cell_vertices)
 #print(unit_square.cell_edges)
@@ -173,7 +173,9 @@ unit_square = UnitSquareMesh(2,2)
 #print(unit_square.cell_vertices)
 #print(unit_square.adjacency(2, 1)[1])
 #print(unit_square.entity_counts)
-#unit_interval = UnitIntervalMesh(2)
+
+unit_interval = UnitIntervalMesh(2)
+
 #print(unit_interval.vertex_coords)
 #print(unit_interval.cell_vertices)
 

@@ -4,10 +4,11 @@ from finite_elements import LagrangeElement, lagrange_points
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.tri import Triangulation
-from mesh import unit_square
+from mesh import unit_square, unit_interval
+import quadrature
+
 
 class FunctionSpace(object):
-
     def __init__(self, mesh, element):
         """A finite element space.
 
@@ -30,8 +31,8 @@ class FunctionSpace(object):
         #: cell. The implementation of this member is left as an
         #: :ref:`exercise <ex-function-space>`
 
-        # The following vector helps us yield the first term of our global error.
-        global_num_vec = [0]* (mesh.dim+1)
+        # The following vector helps us yield the first term of our global numbering for an entity.
+        global_num_vec = [0] * (mesh.dim+1)
         for ind in range(1, mesh.dim+1):
             global_num_vec[ind] = mesh.entity_counts[ind-1] * element.nodes_per_entity[ind-1] + global_num_vec[ind-1]
 
@@ -59,8 +60,14 @@ class FunctionSpace(object):
                     else:
                         continue
             # Need to account for the adjacency when dim1 == dim2, following stores node values within the cell:
+
+            # The following denotes the value of the first node inside the cell which has index = row_index
+            first_node_in_cell = global_num_vec[-1] + row_index * element.nodes_per_entity[-1]
+            # We loop over the indices that store the value of the nodes contained in the cell.
             for index in element.entity_nodes[mesh.dim][0]:
-                cell_nodes[row_index, index] = global_num_vec[-1] + row_index * element.nodes_per_entity[-1]
+                cell_nodes[row_index, index] = first_node_in_cell
+                first_node_in_cell += 1
+
         self.cell_nodes = cell_nodes
 
         #: The total number of nodes in the function space.
@@ -197,4 +204,45 @@ class Function(object):
 
         :result: The integral (a scalar)."""
 
-        raise NotImplementedError
+        # The key idea behind how I implement this method, is notice if coefficient_matrix is a matrix st:
+        # the (c,i) element is F(M(c,i))*|J| (J determinant for corresponding cell c). Also if we construct another
+        # matrix weighted_basis_at_quad which (i,j)th element is \phi_i(X_j)*W_j (X_j denotes jth quadrature point).
+        # Then the integral approximation is equal to the sum of all the entries in the product of these 2 matrices
+
+        # If our polynomial is of degree p, then we need a quadrature rule of degree of precision >= p.
+        cell = self.function_space.element.cell
+        deg = self.function_space.element.degree
+        # Our Quadrature rule.
+        quad_rule = quadrature.gauss_quadrature(cell, deg)
+
+        # Now we need to evaluate our nodal basis at the quadrature points:
+        basis_at_quad = self.function_space.element.tabulate(quad_rule.points)
+
+        # We now have our basis functions evaluated at quadrature points, but we also want to encode the weights:
+
+        weighted_basis_at_quad = np.zeros(basis_at_quad.shape)
+        for q in range(len(quad_rule.points)):
+            weighted_basis_at_quad[q, :] = quad_rule.weights[q] * basis_at_quad[q, :]
+
+        # for the c^{th} cell, we need the determinant of the jacobian.
+        cell_nodes_map = self.function_space.cell_nodes
+
+        num_of_cells = cell_nodes_map.shape[0]
+
+        # Let's now construct a matrix where the c^{th} row is the value of our function f at our
+        # nodes.
+        coefficient_matrix = np.zeros(cell_nodes_map.shape)
+
+        for cell in range(num_of_cells):
+            jacobian_det = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
+            coefficient_matrix[cell, :] = [self.values[i]*jacobian_det for i in cell_nodes_map[cell, :]]
+
+        weighted_basis_at_quad = np.transpose(weighted_basis_at_quad)
+
+        integral_matrix = np.matmul(coefficient_matrix, weighted_basis_at_quad)
+
+        return integral_matrix.sum()
+
+
+
+

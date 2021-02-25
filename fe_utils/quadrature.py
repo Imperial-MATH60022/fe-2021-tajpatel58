@@ -1,5 +1,5 @@
 from numpy.polynomial.legendre import leggauss
-from .reference_elements import ReferenceInterval, ReferenceTriangle
+from reference_elements import ReferenceInterval, ReferenceTriangle
 import numpy as np
 
 
@@ -104,3 +104,4 @@ def gauss_quadrature(cell, degree):
         raise ValueError("Unknown reference cell")
 
     return QuadratureRule(cell, degree, points, weights)
+

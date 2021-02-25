@@ -321,3 +321,7 @@ class LagrangeElement(FiniteElement):
 #LagrangeElement(ReferenceTriangle, 3)
 
 #print(LagrangeElement(ReferenceTriangle, 3).nodes_per_entity)
+
+#print(np.linalg.inv((vandermonde_matrix(ReferenceInterval, 3, lagrange_points(ReferenceInterval, 3)))))
+
+#a = LagrangeElement(ReferenceInterval, 3)
