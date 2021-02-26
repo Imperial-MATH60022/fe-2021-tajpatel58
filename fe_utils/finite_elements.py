@@ -20,28 +20,18 @@ def lagrange_points(cell, degree):
 
     """
 
-    dim = cell.dim
-
-    # A formula from lectures to deduce number of points in reference.
-    num_of_points = int(scipy.special.comb(degree+dim, dim))
-
-    if dim == 1:
+    if cell.dim == 1:
         # As 1D, initialise coordinates to 0 as y-coord == 0.
-        coordinates = np.zeros((num_of_points, 1))
-        coordinates[:, 0] = [i/degree for i in range(num_of_points)]
-        return coordinates
+        coordiantes = np.array([[i/degree] for i in range(degree+1)])
 
-    elif dim == 2:
+        return coordiantes
+
+    elif cell.dim == 2:
         # Using the set given in lectures, we can loop over to construct the points.
         # In particular, for some fixed i in {0,....,degree} the condition i+j<=degree
         # Tells us that 0<=i<=degree-j
+        coordinates = np.array([[i/degree, j/degree] for j in range(degree+1) for i in range(0, degree-j+1)])
 
-        coordinates = np.zeros((num_of_points, 2))
-        coordinate_num = 0
-        for j in range(degree+1):
-            for i in range(0, degree-j+1):
-                coordinates[coordinate_num] = [i/degree, j/degree]
-                coordinate_num += 1
         return coordinates
     else:
         raise ValueError("We only accept cells in 1 or 2 dimensions")
@@ -50,7 +40,7 @@ def lagrange_points(cell, degree):
 #The following functions are used to evaluate x^power_x and x^power_x * y^power_y
 
 def monomial_basis_1(point, power_x):
-    return point**power_x
+    return point[0]**power_x
 
 # For our purposes we only want natural numbers to be powers, hence if we don't we shall return 0
 # This is beneficial with regards to constructing the gradient vector.
@@ -100,7 +90,6 @@ def vandermonde_matrix(cell, degree, points, grad=False):
     """
     num_of_cols = int(scipy.special.comb(degree+cell.dim, cell.dim))
 
-
     """ 
     Seperate based on which dimension our reference is in and we 
     use the fact that a column of V corresponds to evaluating a 
@@ -113,33 +102,33 @@ def vandermonde_matrix(cell, degree, points, grad=False):
             v = np.zeros((len(points), num_of_cols, 1))
             # Power denotes the power of x whose derivative we evaluate at.
             # Index starts at 1 because first column = 0.
+            """
             for power in range(1, degree+1):
                 v[:, power] = [derivative(point, power) for point in points]
+            return v
+            """
+            v = np.array([[[derivative(point, power)] for power in range(degree+1)] for point in points])
             return v
         else:
             v = np.zeros((len(points), num_of_cols, 2))
             col_num = 0
             # For a fixed order, we evaluate the basis functions of that order at points
             # e.g for order 2 we evaluate derivatives of x^2, xy, y^2 in that order.
-            for order in range(0, degree+1):
-                for power in range(order+1):
-                    v[:, col_num] = [grad_vector(point, order-power, power) for point in points]
-                    col_num += 1
+            v = np.array([[grad_vector(point, order-power, power) for order in range(degree+1) for power in range(order+1)] for point in points])
             return v
+
     else:
-        v = np.zeros((len(points), num_of_cols))
+
         if cell.dim == 1:
-            # Power denotes the power of x in our basis.
-            for power in range(0, degree+1):
-                v[:, power] = [monomial_basis_1(point, power) for point in points]
+            # Power denotes the power of x in our basis
+            v = np.array([[monomial_basis_1(point, power) for power in range(degree+1)] for point in points])
             return v
+
         else:
+            v = np.zeros((len(points), num_of_cols))
             col_num = 0
             # For a fixed order, we evaluate the basis functions of that order at points.
-            for order in range(degree+1):
-                for power in range(order+1):
-                    v[:, col_num] = [monomial_basis_2(point, order-power, power) for point in points]
-                    col_num += 1
+            v = np.array([[monomial_basis_2(point, order-power, power) for order in range(degree+1) for power in range(order+1)] for point in points])
             return v
 
 
@@ -254,6 +243,7 @@ class LagrangeElement(FiniteElement):
         """
 
         nodes = lagrange_points(cell, degree)
+        entity_nodes = {}
 
         # Entity nodes in 1D is easy to compute, all nodes apart from end points lie on the edge, hence
         # associate to the edge. End points associated to vertices.
@@ -307,21 +297,4 @@ class LagrangeElement(FiniteElement):
         super(LagrangeElement, self).__init__(cell, degree, nodes, entity_nodes)
 
 
-#print(lagrange_points(ReferenceInterval, 5))
-#print(lagrange_points(ReferenceTriangle, 3))
 
-#print(vandermonde_matrix(ReferenceTriangle, 3, lagrange_points(ReferenceTriangle, 3)))
-
-#print(vandermonde_matrix(ReferenceInterval, 2, lagrange_points(ReferenceInterval, 2), grad=True))
-
-#LagrangeElement(ReferenceInterval, 4)
-
-#print(lagrange_points(ReferenceTriangle,3))
-
-#LagrangeElement(ReferenceTriangle, 3)
-
-#print(LagrangeElement(ReferenceTriangle, 3).nodes_per_entity)
-
-#print(np.linalg.inv((vandermonde_matrix(ReferenceInterval, 3, lagrange_points(ReferenceInterval, 3)))))
-
-#a = LagrangeElement(ReferenceInterval, 3)

@@ -44,16 +44,6 @@ class QuadratureRule(object):
         <ex-integrate>`.
         """
 
-        """
-        integral_approx = 0
-
-        num_of_points = len(self.points)
-
-        for i in range(num_of_points):
-            integral_approx += self.weights[i]*function(self.points[i])
-        
-        """
-
         integral_approx = np.dot([function(x) for x in self.points], self.weights)
 
         return integral_approx

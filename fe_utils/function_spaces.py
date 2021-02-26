@@ -219,12 +219,9 @@ class Function(object):
         basis_at_quad = self.function_space.element.tabulate(quad_rule.points)
 
         # We now have our basis functions evaluated at quadrature points, but we also want to encode the weights:
+        weighted_basis_at_quad = [quad_rule.weights[q] * basis_at_quad[q, :] for q in range(len(quad_rule.points))]
 
-        weighted_basis_at_quad = np.zeros(basis_at_quad.shape)
-        for q in range(len(quad_rule.points)):
-            weighted_basis_at_quad[q, :] = quad_rule.weights[q] * basis_at_quad[q, :]
-
-        # for the c^{th} cell, we need the determinant of the jacobian.
+        # Need the cell_nodes mapping to find the values of our function at our nodes.
         cell_nodes_map = self.function_space.cell_nodes
 
         num_of_cells = cell_nodes_map.shape[0]
@@ -237,6 +234,7 @@ class Function(object):
             jacobian_det = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
             coefficient_matrix[cell, :] = [self.values[i]*jacobian_det for i in cell_nodes_map[cell, :]]
 
+        # Need to transpose as then matches the description of this matrix.
         weighted_basis_at_quad = np.transpose(weighted_basis_at_quad)
 
         integral_matrix = np.matmul(coefficient_matrix, weighted_basis_at_quad)
