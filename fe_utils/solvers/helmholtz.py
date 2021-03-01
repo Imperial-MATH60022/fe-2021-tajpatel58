@@ -59,6 +59,8 @@ def assemble(fs, f):
         for i in range(node_count_cell):
             # value of element in vector l.
             integral_l = 0
+            # row_index for A and for l.
+            row_index = cell_node_map[c, i]
             for q in range(num_quad_point):
                 integral_l += basis_at_quad[q, i] * integral_f_cell_c[q] * quad_rule.weights[q]*det_j
             # update the correct element of l.
@@ -70,8 +72,7 @@ def assemble(fs, f):
                     grad_term = np.dot((J_inv_T  @  basis_grad_at_quad[q, i]), (J_inv_T @ basis_grad_at_quad[q, j]))
                     product_term = basis_at_quad[q, i] * basis_at_quad[q, j]
                     integral += (grad_term + product_term) * quad_rule.weights[q] * det_j
-                # Indices for the entry of A we may change.
-                row_index = cell_node_map[c, i]
+                # column index for the entry of A we may change.
                 col_index = cell_node_map[c, j]
                 # Only edit the matrix A if the integral is non-zero.
                 if integral != 0:
@@ -126,7 +127,6 @@ def solve_helmholtz(degree, resolution, analytic=False, return_error=False):
     # Return the solution and the error in the solution.
     return u, error
 
-solve_helmholtz(1,1)
 
 if __name__ == "__main__":
 

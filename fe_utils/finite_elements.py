@@ -295,10 +295,3 @@ class LagrangeElement(FiniteElement):
         # __init__ method on the FiniteElement class to set up the
         # basis coefficients.
         super(LagrangeElement, self).__init__(cell, degree, nodes, entity_nodes)
-
-
-elem = LagrangeElement(ReferenceTriangle, 2)
-
-points = np.array([[0, 1], [1, 0], [0, 1], [0.5, 0], [0, 0.5], [0.5, 0.25]])
-
-A = np.array([[1, 1], [2,2]])
