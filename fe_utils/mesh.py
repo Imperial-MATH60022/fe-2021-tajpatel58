@@ -58,7 +58,7 @@ class Mesh(object):
 
             # Here we define the derivatives matrix of the Lagrange P1 basis: We know that the nodal basis
             # on the reference element is: x, y, 1-x-y.
-            self.lagrange_derivative = np.array([[1, 0], [0, 1], [-1 ,-1]])
+            self.lagrange_derivative = np.array([[-1, -1], [1, 0], [0,1]])
 
         if self.dim == 2:
             self.entity_counts = np.array((vertex_coords.shape[0],

@@ -1,6 +1,7 @@
 '''Test integration using the quadrature module.'''
 import pytest
 from fe_utils import gauss_quadrature, ReferenceTriangle, ReferenceInterval
+from quadrature import ReferenceInterval, ReferenceTriangle
 
 
 # Test quadrature for polynomials of degree up to 8
