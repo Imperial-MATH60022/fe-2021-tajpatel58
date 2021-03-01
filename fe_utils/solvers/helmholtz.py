@@ -38,10 +38,13 @@ def assemble(fs, f):
     num_quad_point = len(quad_rule.points)
 
     num_of_cells = cell_node_map.shape[0]
+
     for c in range(num_of_cells):
         # Note with our change of coordinates from cell c to reference cell, jacobian is constant in the cell.
+        # Compute some essential Jacobian related terms.
         jacobian = fs.mesh.jacobian(c)
         det_j = np.abs(np.linalg.det(jacobian))
+        J_inv_T = np.transpose(np.linalg.inv(jacobian))
 
         # Number of nodes in our ref cell.
         node_count_cell = fs.element.node_count
@@ -52,35 +55,25 @@ def assemble(fs, f):
         # vector where q^{th} component stores values of f at the q^th quadrature point.
         integral_f_cell_c = [np.dot(f_val_in_cell_c, basis_at_quad[q, :]) for q in range(num_quad_point)]
 
-        # The following adds the integral to the correct component of l.
+        # Constructing the matrix A and l.
         for i in range(node_count_cell):
-            integral = 0
+            # value of element in vector l.
+            integral_l = 0
             for q in range(num_quad_point):
-                integral += basis_at_quad[q, i] * integral_f_cell_c[q] * quad_rule.weights[q]*det_j
-            l[cell_node_map[c, i]] += integral
-
-
-        ########## NOW WE CONSTRUCT THE RIGHT HAND SIDE ###########
-
-        # construct the inverse of the jacobian and the transpose
-        J_inv_T = np.transpose(np.linalg.inv(jacobian))
-        J_inv = np.linalg.inv(jacobian)
-        for i in range(node_count_cell):
+                integral_l += basis_at_quad[q, i] * integral_f_cell_c[q] * quad_rule.weights[q]*det_j
+            # update the correct element of l.
+            l[cell_node_map[c, i]] += integral_l
             for j in range(node_count_cell):
                 integral = 0
-                integral_1 = 0
                 for q in range(num_quad_point):
+                    # Compute different components of the integral at different quadrature points.
                     grad_term = np.dot((J_inv_T  @  basis_grad_at_quad[q, i]), (J_inv_T @ basis_grad_at_quad[q, j]))
                     product_term = basis_at_quad[q, i] * basis_at_quad[q, j]
                     integral += (grad_term + product_term) * quad_rule.weights[q] * det_j
-                    """
-                    for a in range(2):
-                        for b in range(2):
-                            for g in range(2):
-                                integral_1 += (J_inv[b, a] * basis_grad_at_quad[q, i, b] * J_inv[g, a] * basis_grad_at_quad[q, j, g] + basis_at_quad[q, i] * basis_at_quad[q, j]) * det_j * quad_rule.weights[q]
-                    """
+                # Indices for the entry of A we may change.
                 row_index = cell_node_map[c, i]
                 col_index = cell_node_map[c, j]
+                # Only edit the matrix A if the integral is non-zero.
                 if integral != 0:
                     A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])
                 else:
