@@ -57,6 +57,9 @@ def assemble(fs, f):
 
         # Constructing the matrix A and l.
         for i in range(node_count_cell):
+
+
+
             # value of element in vector l.
             integral_l = 0
             # row_index for A and for l.
@@ -79,6 +82,7 @@ def assemble(fs, f):
                     A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])
                 else:
                     continue
+
     return A, l
 
 

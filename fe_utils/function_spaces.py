@@ -217,7 +217,7 @@ class Function(object):
 
         # Now we need to evaluate our nodal basis at the quadrature points:
         basis_at_quad = self.function_space.element.tabulate(quad_rule.points)
-
+        """
         # We now have our basis functions evaluated at quadrature points, but we also want to encode the weights:
         weighted_basis_at_quad = [quad_rule.weights[q] * basis_at_quad[q, :] for q in range(len(quad_rule.points))]
 
@@ -238,8 +238,22 @@ class Function(object):
         weighted_basis_at_quad = np.transpose(weighted_basis_at_quad)
 
         integral_matrix = np.matmul(coefficient_matrix, weighted_basis_at_quad)
+        
 
         return integral_matrix.sum()
+        """
+        cell_nodes_map = self.function_space.cell_nodes
+        num_of_cells = cell_nodes_map.shape[0]
+
+        integral = 0
+
+        for cell in range(num_of_cells):
+            J = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
+            for q in range(len(quad_rule.points)):
+                F_vec = np.take(self.values, cell_nodes_map[cell, :])
+                integral += np.dot(F_vec, basis_at_quad[q, :]) * quad_rule.weights[q]*J
+
+        return integral
 
 
 

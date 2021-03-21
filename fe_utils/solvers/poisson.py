@@ -84,7 +84,8 @@ def assemble(fs, f):
                     col_index = cell_node_map[c, j]
                     # Only edit the matrix A if the integral is non-zero.
                     if integral != 0:
-                        A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])
+                        #A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])
+                        A[np.ix_([row_index], [col_index])] += np.array([integral])
                     else:
                         continue
 
