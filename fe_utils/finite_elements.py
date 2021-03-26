@@ -202,9 +202,8 @@ class FiniteElement(object):
             v = vandermonde_matrix(self.cell, self.degree, points, grad=True)
             t = np.einsum("ijk,jl->ilk", v, self.basis_coefs)
             return t
-        else:
-            v = vandermonde_matrix(self.cell, self.degree, points)
-            return np.matmul(v, self.basis_coefs)
+        v = vandermonde_matrix(self.cell, self.degree, points)
+        return np.matmul(v, self.basis_coefs)
 
     def interpolate(self, fn):
         """Interpolate fn onto this finite element by evaluating it
