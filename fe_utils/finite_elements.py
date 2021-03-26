@@ -2,7 +2,7 @@
 from __future__ import division
 import numpy as np
 import scipy.special
-from reference_elements import ReferenceInterval, ReferenceTriangle
+from .reference_elements import ReferenceInterval, ReferenceTriangle
 np.seterr(invalid='ignore', divide='ignore')
 
 
@@ -102,11 +102,6 @@ def vandermonde_matrix(cell, degree, points, grad=False):
             v = np.zeros((len(points), num_of_cols, 1))
             # Power denotes the power of x whose derivative we evaluate at.
             # Index starts at 1 because first column = 0.
-            """
-            for power in range(1, degree+1):
-                v[:, power] = [derivative(point, power) for point in points]
-            return v
-            """
             v = np.array([[[derivative(point, power)] for power in range(degree+1)] for point in points])
             return v
         else:

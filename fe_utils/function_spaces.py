@@ -1,6 +1,6 @@
 import numpy as np
-from reference_elements import ReferenceTriangle, ReferenceInterval
-from finite_elements import LagrangeElement, lagrange_points
+from . import ReferenceTriangle, ReferenceInterval
+from .finite_elements import LagrangeElement, lagrange_points
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.tri import Triangulation

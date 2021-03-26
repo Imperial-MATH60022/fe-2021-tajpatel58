@@ -1,8 +1,8 @@
 from scipy.spatial import Delaunay
 import numpy as np
 import itertools
-from finite_elements import LagrangeElement
-from reference_elements import ReferenceTriangle, ReferenceInterval
+from .finite_elements import LagrangeElement
+from .reference_elements import ReferenceTriangle, ReferenceInterval
 
 
 class Mesh(object):
@@ -114,22 +114,6 @@ class Mesh(object):
         :param c: The number of the cell for which to return the Jacobian.
         :result: The Jacobian for cell ``c``.
         """
-        """
-        if self.dim == 1:
-            # The following list contains the indexxes of the values of end points of the cell c.
-            cell_c_index = [self.cell_vertices[c][0], self.cell_vertices[c][1]]
-            # We know the derivative of the mapping corresponding to cell c is negative of the abs value of difference
-            # in end points.
-            return np.array([self.vertex_coords[cell_c_index[0]]-self.vertex_coords[cell_c_index[1]]])
-        else:
-            # Let cell_vertices_mat be a 2x3 matrix where each column is a coordinate of the cell c.
-            # We can write J = cell_vertices_mat * lagrange_derivative
-            cell_c_vertices_index = self.cell_vertices[c]
-            cell_vertices_mat = np.zeros((2, 3))
-            for i, vertex_index in enumerate(cell_c_vertices_index):
-                cell_vertices_mat[:, i] = self.vertex_coords[vertex_index]
-            return np.matmul(cell_vertices_mat, self.lagrange_derivative)  
-        """
         # cell_vertices_index stores the indices in self.vertex_coords of the vertices of the cell.
         # Let cell_vertices_mat be a dimxdim+1 matrix where each column is a vertex coordinate of the cell c.
         # We can write J = cell_vertices_mat * lagrange_derivative
@@ -171,12 +155,6 @@ class UnitSquareMesh(Mesh):
         super(UnitSquareMesh, self).__init__(mesh.points,
                                              mesh.simplices)
 
-
-unit_square = UnitSquareMesh(1,1)
-unit_interval = UnitIntervalMesh(2)
-print(unit_square.lagrange_derivative)
-print(unit_interval.cell_vertices[1])
-print(unit_interval.jacobian(1))
 
 
 
