@@ -44,14 +44,12 @@ def assemble(fs, f):
         # Compute some essential Jacobian related terms.
         jacobian = fs.mesh.jacobian(c)
         det_j = np.abs(np.linalg.det(jacobian))
-        J_inv_T = np.transpose(np.linalg.inv(jacobian))
         J_inv = np.linalg.inv(jacobian)
 
         # Number of nodes in our ref cell.
         node_count_cell = fs.element.node_count
 
         # vector storing the values of f at the nodes of cell c
-        #f_val_in_cell_c = [f.values[cell_node_map[c, k]] for k in range(node_count_cell)]
         f_val_in_cell_c = f.values.take(cell_node_map[c, :])
 
         # vector where q^{th} component stores integral of f at the q^th quadrature point.
@@ -66,14 +64,6 @@ def assemble(fs, f):
                 col_index = cell_node_map[c, j]
                 integral = np.einsum('ba,ga,qb,qg,q->',J_inv,J_inv,basis_grad_at_quad[:,i,:], basis_grad_at_quad[:,j,:],quad_rule.weights) * det_j
                 integral += np.einsum('q,q,q', basis_at_quad[:, i], basis_at_quad[:, j], quad_rule.weights) * det_j
-
-                """
-                for q in range(num_quad_point):
-                    # Compute different components of the integral at different quadrature points.
-                    grad_term = np.dot((J_inv_T  @  basis_grad_at_quad[q, i]), (J_inv_T @ basis_grad_at_quad[q, j]))
-                    product_term = basis_at_quad[q, i] * basis_at_quad[q, j]
-                    integral += (grad_term + product_term) * quad_rule.weights[q] * det_j
-                """
                 # Only edit the matrix A if the integral is non-zero.
                 if integral != 0:
                     A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])

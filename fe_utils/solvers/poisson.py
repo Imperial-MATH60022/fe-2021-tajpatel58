@@ -50,13 +50,13 @@ def assemble(fs, f):
         # Compute some essential Jacobian related terms.
         jacobian = fs.mesh.jacobian(c)
         det_j = np.abs(np.linalg.det(jacobian))
-        J_inv_T = np.transpose(np.linalg.inv(jacobian))
+        J_inv = np.linalg.inv(jacobian)
 
         # Number of nodes in our ref cell.
         node_count_cell = fs.element.node_count
 
         # vector storing the values of f at the nodes of cell c
-        f_val_in_cell_c = [f.values[cell_node_map[c, k]] for k in range(node_count_cell)]
+        f_val_in_cell_c = f.values.take(cell_node_map[c, :])
 
         # vector where q^{th} component stores values of f at the q^th quadrature point.
         integral_f_cell_c = [np.dot(f_val_in_cell_c, basis_at_quad[q, :]) for q in range(num_quad_point)]
@@ -64,23 +64,16 @@ def assemble(fs, f):
         # Constructing the matrix A and l.
         for i in range(node_count_cell):
             # value of element in vector l.
-            integral_l = 0
             # row_index for A and for l.
             row_index = cell_node_map[c, i]
             if row_index in list_node_boundary:
                 A[np.ix_(np.array([row_index]), np.array([row_index]))] = 1
             else:
-                integral_l = np.einsum('q, q,q->', basis_at_quad[:,i], quad_rule.weights, integral_f_cell_c) * det_j
                 # update the correct element of l.
-                l[cell_node_map[c, i]] += integral_l
+                l[cell_node_map[c, i]] += np.einsum('q, q,q->', basis_at_quad[:,i], quad_rule.weights, integral_f_cell_c) * det_j
                 for j in range(node_count_cell):
-                    integral = 0
-                    for q in range(num_quad_point):
-                        # Compute different components of the integral at different quadrature points.
-                        grad_term = np.dot((J_inv_T  @  basis_grad_at_quad[q, i]), (J_inv_T @ basis_grad_at_quad[q, j]))
-                        integral += grad_term * quad_rule.weights[q] * det_j
-                    # column index for the entry of A we may change.
                     col_index = cell_node_map[c, j]
+                    integral = np.einsum('ba,ga,qb,qg,q->', J_inv,J_inv, basis_grad_at_quad[:,i,:], basis_grad_at_quad[:,j,:], quad_rule.weights) * det_j
                     # Only edit the matrix A if the integral is non-zero.
                     if integral != 0:
                         A[np.ix_([row_index], [col_index])] += np.array([integral])

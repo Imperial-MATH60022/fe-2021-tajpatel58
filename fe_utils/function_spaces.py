@@ -221,9 +221,8 @@ class Function(object):
         for cell in range(num_of_cells):
             # Jacobian is fixed per cell.
             J = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
-            for q in range(len(quad_rule.points)):
-                F_vec = np.take(self.values, cell_nodes_map[cell, :])
-                integral += np.dot(F_vec, basis_at_quad[q, :]) * quad_rule.weights[q]*J
+            F_vec = np.take(self.values, cell_nodes_map[cell, :])
+            integral += np.einsum('i,q,qi->',F_vec, quad_rule.weights,basis_at_quad)*J
         return integral
 
 
