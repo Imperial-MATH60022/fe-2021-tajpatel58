@@ -20,7 +20,7 @@ def assemble(fs, f):
 
 
     # Create an appropriate (complete) quadrature rule.
-    deg = fs.element.degree+2
+    deg = fs.element.degree ** 2
     cell = fs.element.cell
     quad_rule = gauss_quadrature(cell, deg)
 
@@ -70,8 +70,7 @@ def assemble(fs, f):
             if row_index in list_node_boundary:
                 A[np.ix_(np.array([row_index]), np.array([row_index]))] = 1
             else:
-                for q in range(num_quad_point):
-                    integral_l += basis_at_quad[q, i] * integral_f_cell_c[q] * quad_rule.weights[q]*det_j
+                integral_l = np.einsum('q, q,q->', basis_at_quad[:,i], quad_rule.weights, integral_f_cell_c) * det_j
                 # update the correct element of l.
                 l[cell_node_map[c, i]] += integral_l
                 for j in range(node_count_cell):
@@ -84,7 +83,6 @@ def assemble(fs, f):
                     col_index = cell_node_map[c, j]
                     # Only edit the matrix A if the integral is non-zero.
                     if integral != 0:
-                        #A[np.ix_(np.array([row_index]), np.array([col_index]))] += np.array([integral])
                         A[np.ix_([row_index], [col_index])] += np.array([integral])
                     else:
                         continue

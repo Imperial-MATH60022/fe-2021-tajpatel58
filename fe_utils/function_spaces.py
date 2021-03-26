@@ -202,12 +202,8 @@ class Function(object):
     def integrate(self):
         """Integrate this :class:`Function` over the domain.
 
-        :result: The integral (a scalar)."""
-
-        # The key idea behind how I implement this method, is notice if coefficient_matrix is a matrix st:
-        # the (c,i) element is F(M(c,i))*|J| (J determinant for corresponding cell c). Also if we construct another
-        # matrix weighted_basis_at_quad which (i,j)th element is \phi_i(X_j)*W_j (X_j denotes jth quadrature point).
-        # Then the integral approximation is equal to the sum of all the entries in the product of these 2 matrices
+        :result: The integral (a scalar).
+        """
 
         # If our polynomial is of degree p, then we need a quadrature rule of degree of precision >= p.
         cell = self.function_space.element.cell
@@ -217,42 +213,17 @@ class Function(object):
 
         # Now we need to evaluate our nodal basis at the quadrature points:
         basis_at_quad = self.function_space.element.tabulate(quad_rule.points)
-        """
-        # We now have our basis functions evaluated at quadrature points, but we also want to encode the weights:
-        weighted_basis_at_quad = [quad_rule.weights[q] * basis_at_quad[q, :] for q in range(len(quad_rule.points))]
-
-        # Need the cell_nodes mapping to find the values of our function at our nodes.
-        cell_nodes_map = self.function_space.cell_nodes
-
-        num_of_cells = cell_nodes_map.shape[0]
-
-        # Let's now construct a matrix where the c^{th} row is the value of our function f at our
-        # nodes.
-        coefficient_matrix = np.zeros(cell_nodes_map.shape)
-
-        for cell in range(num_of_cells):
-            jacobian_det = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
-            coefficient_matrix[cell, :] = [self.values[i]*jacobian_det for i in cell_nodes_map[cell, :]]
-
-        # Need to transpose as then matches the description of this matrix.
-        weighted_basis_at_quad = np.transpose(weighted_basis_at_quad)
-
-        integral_matrix = np.matmul(coefficient_matrix, weighted_basis_at_quad)
-        
-
-        return integral_matrix.sum()
-        """
         cell_nodes_map = self.function_space.cell_nodes
         num_of_cells = cell_nodes_map.shape[0]
 
         integral = 0
-
+        # Loop over the cells and sum over them.
         for cell in range(num_of_cells):
+            # Jacobian is fixed per cell.
             J = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
             for q in range(len(quad_rule.points)):
                 F_vec = np.take(self.values, cell_nodes_map[cell, :])
                 integral += np.dot(F_vec, basis_at_quad[q, :]) * quad_rule.weights[q]*J
-
         return integral
 
 
