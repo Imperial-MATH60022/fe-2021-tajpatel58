@@ -1,5 +1,5 @@
 from numpy.polynomial.legendre import leggauss
-from .reference_elements import ReferenceInterval, ReferenceTriangle
+from reference_elements import ReferenceInterval, ReferenceTriangle
 import numpy as np
 
 
@@ -44,7 +44,9 @@ class QuadratureRule(object):
         <ex-integrate>`.
         """
 
-        raise NotImplementedError
+        integral_approx = np.dot([function(x) for x in self.points], self.weights)
+
+        return integral_approx
 
 
 def gauss_quadrature(cell, degree):
@@ -92,3 +94,4 @@ def gauss_quadrature(cell, degree):
         raise ValueError("Unknown reference cell")
 
     return QuadratureRule(cell, degree, points, weights)
+

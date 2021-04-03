@@ -4,10 +4,11 @@ from .finite_elements import LagrangeElement, lagrange_points
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.tri import Triangulation
+from mesh import unit_square, unit_interval
+import quadrature
 
 
 class FunctionSpace(object):
-
     def __init__(self, mesh, element):
         """A finite element space.
 
@@ -23,15 +24,51 @@ class FunctionSpace(object):
         #: The :class:`~.finite_elements.FiniteElement` of this space.
         self.element = element
 
-        raise NotImplementedError
-
         # Implement global numbering in order to produce the global
         # cell node list for this space.
         #: The global cell node list. This is a two-dimensional array in
         #: which each row lists the global nodes incident to the corresponding
         #: cell. The implementation of this member is left as an
         #: :ref:`exercise <ex-function-space>`
-        self.cell_nodes = None
+
+        # The following vector helps us yield the first term of our global numbering for an entity.
+        global_num_vec = [0] * (mesh.dim+1)
+        for ind in range(1, mesh.dim+1):
+            global_num_vec[ind] = mesh.entity_counts[ind-1] * element.nodes_per_entity[ind-1] + global_num_vec[ind-1]
+
+        # Number of rows of cell_nodes is the number of cells.
+        nrows = mesh.entity_counts[-1]
+        # Number of columns is number of nodes in each cell.
+        ncols = element.node_count
+        # Initalise the matrix.
+        cell_nodes = np.zeros((nrows,ncols), dtype=int)
+        # Establish the rows as we go along.
+        for row_index in range(nrows):
+            for delta in range(mesh.dim):
+                #adj_ents_num denotes the indexxes of the adjacent delta dimensional entities.
+                adj_ents_num = mesh.adjacency(mesh.dim, delta)[row_index]
+                # Below corresponds to picking the entity (delta, adj_ents_num[e])
+                for e, ent in enumerate(adj_ents_num):
+                    if element.entity_nodes[delta][e]:
+                        # global numbering value corresponding to this entity.
+                        g_d_i = global_num_vec[delta] + ent*element.nodes_per_entity[delta]
+                        # After first node value assigned, we need to increment by one for a value of the next node
+                        # on this entity.
+                        for index in element.entity_nodes[delta][e]:
+                            cell_nodes[row_index, index] = g_d_i
+                            g_d_i += 1
+                    else:
+                        continue
+            # Need to account for the adjacency when dim1 == dim2, following stores node values within the cell:
+
+            # The following denotes the value of the first node inside the cell which has index = row_index
+            first_node_in_cell = global_num_vec[-1] + row_index * element.nodes_per_entity[-1]
+            # We loop over the indices that store the value of the nodes contained in the cell.
+            for index in element.entity_nodes[mesh.dim][0]:
+                cell_nodes[row_index, index] = first_node_in_cell
+                first_node_in_cell += 1
+
+        self.cell_nodes = cell_nodes
 
         #: The total number of nodes in the function space.
         self.node_count = np.dot(element.nodes_per_entity, mesh.entity_counts)
@@ -165,6 +202,29 @@ class Function(object):
     def integrate(self):
         """Integrate this :class:`Function` over the domain.
 
-        :result: The integral (a scalar)."""
+        :result: The integral (a scalar).
+        """
 
-        raise NotImplementedError
+        # If our polynomial is of degree p, then we need a quadrature rule of degree of precision >= p.
+        cell = self.function_space.element.cell
+        deg = self.function_space.element.degree
+        # Our Quadrature rule.
+        quad_rule = quadrature.gauss_quadrature(cell, deg)
+
+        # Now we need to evaluate our nodal basis at the quadrature points:
+        basis_at_quad = self.function_space.element.tabulate(quad_rule.points)
+        cell_nodes_map = self.function_space.cell_nodes
+        num_of_cells = cell_nodes_map.shape[0]
+
+        integral = 0
+        # Loop over the cells and sum over them.
+        for cell in range(num_of_cells):
+            # Jacobian is fixed per cell.
+            J = np.absolute(np.linalg.det(self.function_space.mesh.jacobian(cell)))
+            F_vec = np.take(self.values, cell_nodes_map[cell, :])
+            integral += np.einsum('i,q,qi->',F_vec, quad_rule.weights,basis_at_quad)*J
+        return integral
+
+
+
+

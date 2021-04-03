@@ -56,6 +56,10 @@ class Mesh(object):
             """The indices of the edges incident to each cell (only for 2D
             meshes)."""
 
+            # Here we define the derivatives matrix of the Lagrange P1 basis: We know that the nodal basis
+            # on the reference element is: x, y, 1-x-y. Note: P1 Basis has constant derivatives.
+            self.lagrange_derivative = LagrangeElement(ReferenceTriangle, 1).tabulate(np.array([[0, 0]]),grad=True)[0]
+
         if self.dim == 2:
             self.entity_counts = np.array((vertex_coords.shape[0],
                                            self.edge_vertices.shape[0],
@@ -66,7 +70,7 @@ class Mesh(object):
         else:
             self.entity_counts = np.array((vertex_coords.shape[0],
                                            self.cell_vertices.shape[0]))
-
+            self.lagrange_derivative = LagrangeElement(ReferenceInterval, 1).tabulate([[0]], grad=True)[0]
         #: The :class:`~.reference_elements.ReferenceCell` of which this
         #: :class:`Mesh` is composed.
         self.cell = (0, ReferenceInterval, ReferenceTriangle)[self.dim]
@@ -110,8 +114,14 @@ class Mesh(object):
         :param c: The number of the cell for which to return the Jacobian.
         :result: The Jacobian for cell ``c``.
         """
-
-        raise NotImplementedError
+        # cell_vertices_index stores the indices in self.vertex_coords of the vertices of the cell.
+        # Let cell_vertices_mat be a dimxdim+1 matrix where each column is a vertex coordinate of the cell c.
+        # We can write J = cell_vertices_mat * lagrange_derivative
+        cell_vertices_index = self.cell_vertices[c]
+        cell_vertices_mat = np.zeros((self.dim, self.dim+1))
+        for i, vertex_index in enumerate(cell_vertices_index):
+            cell_vertices_mat[:, i] = self.vertex_coords[vertex_index]
+        return np.matmul(cell_vertices_mat, self.lagrange_derivative)
 
 
 class UnitIntervalMesh(Mesh):
@@ -144,3 +154,10 @@ class UnitSquareMesh(Mesh):
 
         super(UnitSquareMesh, self).__init__(mesh.points,
                                              mesh.simplices)
+
+
+
+
+
+
+
